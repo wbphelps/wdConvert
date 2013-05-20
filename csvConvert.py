@@ -21,6 +21,9 @@ import time
 import weeutil
 import weewx
 import weewx.archive
+import syslog
+
+syslog.setlogmask(syslog.LOG_UPTO(syslog.LOG_NOTICE)) # prevent flooding syslog
 
 #fields = ['date', 'time', 'outTemp', 'outHumidity', 'dewpoint', 'windSpeed', 'windGust10', 'windDir', 'rainRate', 'dayRain',
 #          'barometer', 'totalRain', 'inTemp', 'inHumidity', 'windGust', 'windchill', 'heatindex',
@@ -52,7 +55,8 @@ print "Using configuration file %s." % config_fn
 archive_db = config_dict['StdArchive']['archive_database']
 print archive_db
 archive_db_dict = config_dict['Databases'][archive_db]
-archive_db_dict['database'] = 'archive/weewx_new.sdb'
+#archive_db_dict['database'] = 'archive/weewx_new.sdb'
+archive_db_dict['database'] = args.sql_path
 print archive_db_dict        
 archive = weewx.archive.Archive.open(archive_db_dict)
 nrecs = 0
@@ -68,11 +72,11 @@ with open(args.csv_path, 'r') as csvfile:
         record = dict(zip(fields, row))
         record['usUnits'] = 1
         record['dateTime'] = int(record['dateTime'])
-        print record
-        print "Unit system of incoming record (0x%x)" % record['usUnits']
-        
+        print str(nrecs) + ": " +  str(record['dateTime'])
+#        print record
+#        print "Unit system of incoming record (0x%x)" % record['usUnits']
         # Add the record to the database:
-        archive.addRecord(record)
+        archive.addRecord(record,log_level=syslog.LOG_INFO)
         nrecs += 1
         
 archive.close()

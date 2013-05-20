@@ -20,12 +20,12 @@ from datetime import datetime
 from datetime import timedelta
 import csv
 import time
-import uwxutils
+import weewx.uwxutils
 
 print "Weather Display Log File Convert Utility"
 
 #wd_dir = "C:\\wdisplay\\logfiles\\"
-wd_dir = "logfiles\\"
+wd_dir = "/home/weewx/logfiles/"
 
 parser = argparse.ArgumentParser(description='convert WD log files to csv/xls ?')
 parser.add_argument('start_year', nargs='?', type=int, default='2010')
@@ -81,8 +81,8 @@ def get_pressures(altitude, barometer, currentTempF, humidity):
 		# If humidity is missing, use 0.
 		if humidity is None:
 			humidity = 0
-		pressureIn = uwxutils.uWxUtilsVP.SeaLevelToSensorPressure_12(barometer, altitude, currentTempF, temp12HrsAgoF, humidity)
-		altimeterIn = uwxutils.TWxUtilsUS.StationToAltimeter(pressureIn, altitude)
+		pressureIn = weewx.uwxutils.uWxUtilsVP.SeaLevelToSensorPressure_12(barometer, altitude, currentTempF, temp12HrsAgoF, humidity)
+		altimeterIn = weewx.uwxutils.TWxUtilsUS.StationToAltimeter(pressureIn, altitude)
 		pressureIn = int(pressureIn*10000.0+0.5)/10000.0
 		altimeterIn = int(altimeterIn*10000.0+0.5)/10000.0
 		return pressureIn, altimeterIn
