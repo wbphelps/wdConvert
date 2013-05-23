@@ -1,17 +1,4 @@
 # wdConvert.py
-# Copyright (c) 2013 William B Phelps <wm@usa.net>
-#
-# Modified 2013/05/18 wbphelps - initial post to github
-#   add altitude, interval args
-#
-""" Reads 3 Weather Display log files and writes a CSV file with the combined data,
-suitable for importing into a weewx database (or other weather program?)
-This program is an example only, you are cautioned to reveiw and test thoroughly before
-actually adding any data to an existing database.  The author wrote this program for his
-own use and is making it available to others in the hopes that it will be a useful example
-but there are absolutely no guarantees that this is in any way a working program...
-Use at your own risk!
-"""
 
 import os
 import os.path
@@ -22,7 +9,7 @@ import csv
 import time
 import uwxutils
 
-print "Weather Display Log File Convert Utility"
+print "WD Convert utility"
 
 #wd_dir = "C:\\wdisplay\\logfiles\\"
 wd_dir = "logfiles\\"
@@ -88,7 +75,22 @@ def get_pressures(altitude, barometer, currentTempF, humidity):
 		return pressureIn, altimeterIn
 	else:
 		return (None, None)
-		
+
+#windchillF from weewx wxformulas.py
+def windchillF(T_F, V_mph) :
+	"""Calculate wind chill. From http://www.nws.noaa.gov/om/windchill
+	T_F: Temperature in Fahrenheit
+	V_mph: Wind speed in mph
+	Returns Wind Chill in Fahrenheit
+	"""
+	if T_F is None or V_mph is None:
+		return None
+	# Formula only valid for temperatures below 50F and wind speeds over 3.0 mph
+	if T_F >= 50.0 or V_mph <= 3.0 :
+		return T_F
+	WcF = 35.74 + 0.6215 * T_F + (-35.75  + 0.4275 * T_F) * math.pow(V_mph, 0.16)
+	return WcF
+
 
 # example of myyyylg.txt
 #day month year hour minute temperature humidity dewpoint barometer windspeed gustspeed direction rainlastmin dailyrain monthlyrain yearlyrain heatindex
@@ -336,10 +338,14 @@ while (year <= year_end) and (month <= month_end) and (count < max):
 	pressureIn, altimeterIn = get_pressures(altitude, float(d_flg['barometer']), float(d_flg['temperature']), float(d_flg['humidity']))
 	#dt = datetime(d.year,d.month,d.day,t.hour,t.minute,t.second)
 	utcs = int(time.mktime(dt_exp.timetuple()))
+	# weewx rainrate is inches/hour (or cm/hour); rain is inches (or cm) for the archive period
+	# WD keeps rainlastmin, railyrain, monthlyrain & yearlyrain in the lg logfile
+	rr = float(d_flg['rainlastmin'])/60.0 # rain rate if interval = 60
+	wc = windchillF(d_flg['temperature'], d_flg['windspeed'])
 	fwriter.writerow([utcs, 1, int(interval/60), \
 		d_flg['barometer'], pressureIn, altimeterIn, d_finlg['temperature'], d_flg['temperature'], d_finlg['humidity'], d_flg['humidity'], \
-		d_flg['windspeed'], d_flg['direction'], d_flg['gustspeed'], d_flg['direction'], d_flg['rainlastmin'], d_flg['dailyrain'], d_flg['dewpoint'], \
-		0, d_flg['heatindex'], d_fvalg['ET'], d_fvalg['radiation'], d_fvalg['UV'], 
+		d_flg['windspeed'], d_flg['direction'], d_flg['gustspeed'], d_flg['direction'], rr, d_flg['rainlastmin'], d_flg['dewpoint'], \
+		wc, d_flg['heatindex'], d_fvalg['ET'], d_fvalg['radiation'], d_fvalg['UV'], 
 		])
 
 #	dt_exp += datetime.timedelta(seconds=60) # add 1 minute
